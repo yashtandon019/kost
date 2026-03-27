@@ -7,12 +7,30 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	metricsfake "k8s.io/metrics/pkg/client/clientset/versioned/fake"
 
 	"github.com/yashtandon019/kost/pkg/pricing"
 )
+
+func newFakeMetricsClient(namespacedMetrics map[string][]metricsv1beta1.PodMetrics) *metricsfake.Clientset {
+	client := metricsfake.NewSimpleClientset()
+	client.PrependReactor("list", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		listAction, ok := action.(clienttesting.ListAction)
+		if !ok {
+			return false, nil, nil
+		}
+
+		items := namespacedMetrics[listAction.GetNamespace()]
+		return true, &metricsv1beta1.PodMetricsList{
+			Items: append([]metricsv1beta1.PodMetrics(nil), items...),
+		}, nil
+	})
+	return client
+}
 
 func TestCollect_SingleNamespace(t *testing.T) {
 	kubeClient := kubefake.NewSimpleClientset(
@@ -31,8 +49,8 @@ func TestCollect_SingleNamespace(t *testing.T) {
 		},
 	)
 
-	metricsClient := metricsfake.NewSimpleClientset(
-		&metricsv1beta1.PodMetrics{
+	metricsClient := newFakeMetricsClient(map[string][]metricsv1beta1.PodMetrics{
+		"default": {{
 			ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "default"},
 			Containers: []metricsv1beta1.ContainerMetrics{{
 				Name: "app",
@@ -41,8 +59,8 @@ func TestCollect_SingleNamespace(t *testing.T) {
 					corev1.ResourceMemory: resource.MustParse("128Mi"),
 				},
 			}},
-		},
-	)
+		}},
+	})
 
 	c := &MetricsServerCollector{
 		Pricing:       pricing.DefaultPricing(),
@@ -100,8 +118,8 @@ func TestCollect_MultipleNamespaces(t *testing.T) {
 		},
 	)
 
-	metricsClient := metricsfake.NewSimpleClientset(
-		&metricsv1beta1.PodMetrics{
+	metricsClient := newFakeMetricsClient(map[string][]metricsv1beta1.PodMetrics{
+		"ns-a": {{
 			ObjectMeta: metav1.ObjectMeta{Name: "pod-a", Namespace: "ns-a"},
 			Containers: []metricsv1beta1.ContainerMetrics{{
 				Name: "c",
@@ -110,8 +128,8 @@ func TestCollect_MultipleNamespaces(t *testing.T) {
 					corev1.ResourceMemory: resource.MustParse("256Mi"),
 				},
 			}},
-		},
-	)
+		}},
+	})
 
 	c := &MetricsServerCollector{
 		Pricing:       pricing.DefaultPricing(),
@@ -170,8 +188,8 @@ func TestCollect_GPUDetection(t *testing.T) {
 		},
 	)
 
-	metricsClient := metricsfake.NewSimpleClientset(
-		&metricsv1beta1.PodMetrics{
+	metricsClient := newFakeMetricsClient(map[string][]metricsv1beta1.PodMetrics{
+		"gpu-ns": {{
 			ObjectMeta: metav1.ObjectMeta{Name: "gpu-pod", Namespace: "gpu-ns"},
 			Containers: []metricsv1beta1.ContainerMetrics{{
 				Name: "trainer",
@@ -180,8 +198,8 @@ func TestCollect_GPUDetection(t *testing.T) {
 					corev1.ResourceMemory: resource.MustParse("4Gi"),
 				},
 			}},
-		},
-	)
+		}},
+	})
 
 	c := &MetricsServerCollector{
 		Pricing:       pricing.DefaultPricing(),
@@ -215,7 +233,7 @@ func TestCollect_EmptyNamespace(t *testing.T) {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "empty"}},
 	)
 
-	metricsClient := metricsfake.NewSimpleClientset()
+	metricsClient := newFakeMetricsClient(nil)
 
 	c := &MetricsServerCollector{
 		Pricing:       pricing.DefaultPricing(),
@@ -258,8 +276,8 @@ func TestCollect_MultipleContainersAggregated(t *testing.T) {
 		},
 	)
 
-	metricsClient := metricsfake.NewSimpleClientset(
-		&metricsv1beta1.PodMetrics{
+	metricsClient := newFakeMetricsClient(map[string][]metricsv1beta1.PodMetrics{
+		"multi": {{
 			ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "multi"},
 			Containers: []metricsv1beta1.ContainerMetrics{
 				{
@@ -277,8 +295,8 @@ func TestCollect_MultipleContainersAggregated(t *testing.T) {
 					},
 				},
 			},
-		},
-	)
+		}},
+	})
 
 	c := &MetricsServerCollector{
 		Pricing:       pricing.DefaultPricing(),
