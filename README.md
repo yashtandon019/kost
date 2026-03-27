@@ -79,6 +79,67 @@ cost ≈ (cpu_cores × cpu_price) + (memory_gb × mem_price) + (gpu × gpu_price
 ```
 Resource prices are user-configurable.
 
+## Local Demo
+
+With a Kind cluster and `metrics-server` installed:
+
+```bash
+make install
+kubectl apply -f config/samples/kost_v1alpha1_kostconfig.yaml
+make run
+```
+
+Then inspect the resource:
+
+```bash
+kubectl describe kostconfig kostconfig-sample
+```
+
+Example output:
+
+```text
+Name:         kostconfig-sample
+Namespace:    default
+Labels:       app.kubernetes.io/managed-by=kustomize
+              app.kubernetes.io/name=kost
+Annotations:  <none>
+API Version:  kost.kost.dev/v1alpha1
+Kind:         KostConfig
+Metadata:
+  Creation Timestamp:  2026-03-27T18:55:30Z
+  Generation:          1
+  Resource Version:    1460
+  UID:                 2b24ac9a-11e4-45ce-b56d-3ec9cc80c0c3
+Spec:
+  Explainer:
+    Provider:        noop
+  Min Samples:       10
+  Polling Interval:  5m
+  Pricing:
+    Cpu Per Core Hour:   0.034
+    Gpu Per Hour:        0.526
+    Memory Per GB Hour:  0.0043
+  Sigma Threshold:       2
+Status:
+  Active Anomalies:  0
+  Conditions:
+    Last Transition Time:  2026-03-27T18:57:15Z
+    Message:               Checked 5 namespaces, found 0 anomalies
+    Reason:                ReconcileSucceeded
+    Status:                True
+    Type:                  Available
+  Last Check Time:         2026-03-27T18:57:15Z
+Events:                    <none>
+```
+
+This shows the current happy-path behavior:
+- the controller is running
+- metrics collection succeeded
+- anomaly detection ran
+- no anomalies were found yet
+
+For a faster demo, lower `minSamples` and `pollingInterval` in `config/samples/kost_v1alpha1_kostconfig.yaml`.
+
 ## Roadmap
 
 - [ ] Operator scaffold with kubebuilder
