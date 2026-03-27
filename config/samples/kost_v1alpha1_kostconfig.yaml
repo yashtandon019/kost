@@ -1,0 +1,9 @@
+apiVersion: kost.kost.dev/v1alpha1
+kind: KostConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: kost
+    app.kubernetes.io/managed-by: kustomize
+  name: kostconfig-sample
+spec:
+  # TODO(user): Add fields here
