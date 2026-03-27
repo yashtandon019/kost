@@ -81,7 +81,7 @@ func (d *Detector) UpdateBaselines(usages []collector.NamespaceUsage) {
 		delta2 := usage.EstimatedCostPerHour - baseline.AvgCost
 		// Running variance (we store stddev, so convert).
 		variance := baseline.StdDev * baseline.StdDev
-		variance += (delta*delta2-variance)/n
+		variance += (delta*delta2 - variance) / n
 		baseline.StdDev = math.Sqrt(math.Max(0, variance))
 		baseline.LastUpdated = time.Now()
 	}
