@@ -39,25 +39,85 @@ spec:
           spec:
             description: spec defines the desired state of KostConfig
             properties:
-              foo:
-                description: foo is an example field of KostConfig. Edit kostconfig_types.go
-                  to remove/update
+              explainer:
+                description: Explainer configures the LLM backend for generating explanations.
+                properties:
+                  endpoint:
+                    description: Endpoint is a custom API endpoint URL (useful for
+                      Ollama or proxies).
+                    type: string
+                  model:
+                    description: Model is the specific model to use (e.g., "claude-sonnet-4-20250514",
+                      "gpt-4o").
+                    type: string
+                  provider:
+                    default: noop
+                    description: 'Provider is the LLM backend to use: "noop", "claude",
+                      "openai", or "ollama".'
+                    enum:
+                    - noop
+                    - claude
+                    - openai
+                    - ollama
+                    type: string
+                  secretRef:
+                    description: |-
+                      SecretRef references a Kubernetes Secret containing the API key.
+                      The secret must have a key named "api-key".
+                    properties:
+                      name:
+                        description: Name is the name of the Secret.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                type: object
+              minSamples:
+                default: 10
+                description: |-
+                  MinSamples is the minimum number of data points required before
+                  anomaly detection activates.
+                minimum: 3
+                type: integer
+              pollingInterval:
+                default: 5m
+                description: PollingInterval is how often to check for anomalies (e.g.,
+                  "5m", "30s").
                 type: string
+              pricing:
+                description: Pricing configures per-resource cost estimation.
+                properties:
+                  cpuPerCoreHour:
+                    default: 0.034
+                    description: CPUPerCoreHour is the cost per CPU core per hour.
+                    type: number
+                  gpuPerHour:
+                    default: 0.526
+                    description: GPUPerHour is the cost per GPU per hour.
+                    type: number
+                  memoryPerGBHour:
+                    default: 0.0043
+                    description: MemoryPerGBHour is the cost per GB of memory per
+                      hour.
+                    type: number
+                type: object
+              sigmaThreshold:
+                default: 2
+                description: |-
+                  SigmaThreshold is the number of standard deviations above the mean
+                  that triggers an anomaly alert.
+                minimum: 0.5
+                type: number
             type: object
           status:
             description: status defines the observed state of KostConfig
             properties:
+              activeAnomalies:
+                description: ActiveAnomalies is the number of currently detected anomalies.
+                type: integer
               conditions:
-                description: |-
-                  conditions represent the current state of the KostConfig resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
+                description: conditions represent the current state of the KostConfig
+                  resource.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -116,6 +176,10 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              lastCheckTime:
+                description: LastCheckTime is when the last anomaly check was performed.
+                format: date-time
+                type: string
             type: object
         required:
         - spec

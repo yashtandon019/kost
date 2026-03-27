@@ -6,4 +6,12 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: kostconfig-sample
 spec:
-  # TODO(user): Add fields here
+  pollingInterval: "5m"
+  sigmaThreshold: 2.0
+  minSamples: 10
+  explainer:
+    provider: "noop"
+  pricing:
+    cpuPerCoreHour: 0.034
+    memoryPerGBHour: 0.0043
+    gpuPerHour: 0.526

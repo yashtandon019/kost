@@ -20,38 +20,94 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// KostConfigSpec defines the desired state of KostConfig
+// KostConfigSpec defines the desired state of KostConfig.
 type KostConfigSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-
-	// foo is an example field of KostConfig. Edit kostconfig_types.go to remove/update
+	// PollingInterval is how often to check for anomalies (e.g., "5m", "30s").
+	// +kubebuilder:default="5m"
 	// +optional
-	Foo *string `json:"foo,omitempty"`
+	PollingInterval string `json:"pollingInterval,omitempty"`
+
+	// SigmaThreshold is the number of standard deviations above the mean
+	// that triggers an anomaly alert.
+	// +kubebuilder:default=2.0
+	// +kubebuilder:validation:Minimum=0.5
+	// +optional
+	SigmaThreshold float64 `json:"sigmaThreshold,omitempty"`
+
+	// MinSamples is the minimum number of data points required before
+	// anomaly detection activates.
+	// +kubebuilder:default=10
+	// +kubebuilder:validation:Minimum=3
+	// +optional
+	MinSamples int `json:"minSamples,omitempty"`
+
+	// Explainer configures the LLM backend for generating explanations.
+	// +optional
+	Explainer ExplainerSpec `json:"explainer,omitempty"`
+
+	// Pricing configures per-resource cost estimation.
+	// +optional
+	Pricing PricingSpec `json:"pricing,omitempty"`
+}
+
+// ExplainerSpec configures the LLM backend used for anomaly explanations.
+type ExplainerSpec struct {
+	// Provider is the LLM backend to use: "noop", "claude", "openai", or "ollama".
+	// +kubebuilder:default="noop"
+	// +kubebuilder:validation:Enum=noop;claude;openai;ollama
+	// +optional
+	Provider string `json:"provider,omitempty"`
+
+	// Model is the specific model to use (e.g., "claude-sonnet-4-20250514", "gpt-4o").
+	// +optional
+	Model string `json:"model,omitempty"`
+
+	// Endpoint is a custom API endpoint URL (useful for Ollama or proxies).
+	// +optional
+	Endpoint string `json:"endpoint,omitempty"`
+
+	// SecretRef references a Kubernetes Secret containing the API key.
+	// The secret must have a key named "api-key".
+	// +optional
+	SecretRef *SecretReference `json:"secretRef,omitempty"`
+}
+
+// SecretReference is a reference to a Kubernetes Secret in the same namespace.
+type SecretReference struct {
+	// Name is the name of the Secret.
+	// +required
+	Name string `json:"name"`
+}
+
+// PricingSpec configures per-resource hourly costs for estimation.
+type PricingSpec struct {
+	// CPUPerCoreHour is the cost per CPU core per hour.
+	// +kubebuilder:default=0.034
+	// +optional
+	CPUPerCoreHour float64 `json:"cpuPerCoreHour,omitempty"`
+
+	// MemoryPerGBHour is the cost per GB of memory per hour.
+	// +kubebuilder:default=0.0043
+	// +optional
+	MemoryPerGBHour float64 `json:"memoryPerGBHour,omitempty"`
+
+	// GPUPerHour is the cost per GPU per hour.
+	// +kubebuilder:default=0.526
+	// +optional
+	GPUPerHour float64 `json:"gpuPerHour,omitempty"`
 }
 
 // KostConfigStatus defines the observed state of KostConfig.
 type KostConfigStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// LastCheckTime is when the last anomaly check was performed.
+	// +optional
+	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
 
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+	// ActiveAnomalies is the number of currently detected anomalies.
+	// +optional
+	ActiveAnomalies int `json:"activeAnomalies"`
 
 	// conditions represent the current state of the KostConfig resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
