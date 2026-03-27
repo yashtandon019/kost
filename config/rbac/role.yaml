@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - kost.kost.dev
+  resources:
+  - kostconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kost.kost.dev
+  resources:
+  - kostconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kost.kost.dev
+  resources:
+  - kostconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
