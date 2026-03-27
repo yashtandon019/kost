@@ -1,6 +1,35 @@
 # kost - AI Agent Guide
 
-## Project Structure
+## What Is Kost?
+
+Kost is a lightweight Kubernetes cost anomaly detector. It collects resource usage metrics, detects spending deviations using statistical baselines (Welford's algorithm), explains anomalies in plain English via pluggable LLM backends (Claude, OpenAI, Ollama), and alerts via Slack/webhooks/K8s Events.
+
+**Pipeline:** Collector → Detector → Explainer → Alerter
+
+## Custom Package Structure
+
+```
+pkg/collector/             Metrics collection (metrics-server / Prometheus)
+  collector.go             Collector interface + MetricsServerCollector
+  types.go                 ResourceSnapshot, NamespaceUsage
+pkg/detector/              Statistical anomaly detection
+  detector.go              Rolling avg + σ deviation (Welford's algorithm)
+  types.go                 Anomaly, Baseline, Severity, DetectorConfig
+pkg/explainer/             Pluggable LLM explanation generation
+  explainer.go             Explainer interface + Explanation type
+  noop.go                  Raw anomaly formatting (no LLM)
+  claude.go                Anthropic Claude (stub)
+  openai.go                OpenAI GPT (stub)
+  ollama.go                Local models via Ollama (stub)
+pkg/alerter/               Alert delivery sinks
+  alerter.go               Alerter interface
+  slack.go                 Slack webhook (stub)
+  event.go                 K8s Events (stub)
+pkg/pricing/               Resource cost estimation
+  pricing.go               PricingConfig with configurable per-resource prices
+```
+
+## Kubebuilder Project Structure
 
 **Single-group layout (default):**
 ```
