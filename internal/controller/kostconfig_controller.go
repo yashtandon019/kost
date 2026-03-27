@@ -97,9 +97,7 @@ func (r *KostConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	pricingConfig := pricingFromSpec(config.Spec.Pricing)
 
 	// 4. Create collector.
-	// NOTE: Once #2 (metrics-server collector) is merged, update to pass pricingConfig.
-	_ = pricingConfig // Will be used by the collector after #2 is merged.
-	coll := collector.NewMetricsServerCollector("")
+	coll := collector.NewMetricsServerCollector("", pricingConfig)
 
 	// 5. Get or create detector for this KostConfig.
 	det := r.getOrCreateDetector(req.String(), config.Spec)
