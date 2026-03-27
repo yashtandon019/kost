@@ -3,6 +3,8 @@ package collector
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +56,22 @@ func (c *MetricsServerCollector) buildConfig() (*rest.Config, error) {
 	if c.KubeConfigPath != "" {
 		return clientcmd.BuildConfigFromFlags("", c.KubeConfigPath)
 	}
-	return rest.InClusterConfig()
+
+	if cfg, err := rest.InClusterConfig(); err == nil {
+		return cfg, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolving user home directory: %w", err)
+	}
+
+	kubeconfigPath := filepath.Join(homeDir, ".kube", "config")
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("building kubeconfig from %s: %w", kubeconfigPath, err)
+	}
+	return cfg, nil
 }
 
 // ensureClients lazily initialises the Kubernetes and metrics clients.
@@ -117,7 +134,11 @@ func (c *MetricsServerCollector) Collect(ctx context.Context) ([]NamespaceUsage,
 }
 
 // collectNamespace gathers metrics for a single namespace.
-func (c *MetricsServerCollector) collectNamespace(ctx context.Context, namespace string, now time.Time) (NamespaceUsage, error) {
+func (c *MetricsServerCollector) collectNamespace(
+	ctx context.Context,
+	namespace string,
+	now time.Time,
+) (NamespaceUsage, error) {
 	podMetrics, err := c.metricsClient.MetricsV1beta1().PodMetricses(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return NamespaceUsage{}, fmt.Errorf("listing pod metrics: %w", err)
